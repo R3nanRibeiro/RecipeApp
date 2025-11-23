@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Adicionar Receita{% endblock %}
+
+{% block content %}
+<section class="recipe-form-section">
+    <div class="container">
+        <h2>Adicionar Nova Receita</h2>
+        
+        <form method="POST" action="{{ url_for('adicionar_receita') }}" enctype="multipart/form-data">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="titulo">Título da Receita *</label>
+                    <input type="text" id="titulo" name="titulo" required>
+                </div>
+                <div class="form-group">
+                    <label for="categoria">Categoria *</label>
+                    <select id="categoria" name="categoria" required>
+                        <option value="">Selecione</option>
+                        <option value="doce">Doce</option>
+                        <option value="salgado">Salgado</option>
+                        <option value="vegano">Vegano</option>
+                        <option value="massas">Massas</option>
+                        <option value="carne">Carnes</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="descricao">Descrição *</label>
+                <textarea id="descricao" name="descricao" rows="2" required></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="tempo_preparo">Tempo de Preparo *</label>
+                    <input type="text" id="tempo_preparo" name="tempo_preparo" placeholder="ex: 45 min" required>
+                </div>
+                <div class="form-group">
+                    <label for="porcoes">Porções *</label>
+                    <input type="text" id="porcoes" name="porcoes" placeholder="ex: 8 porções" required>
+                </div>
+                <div class="form-group">
+                    <label for="dificuldade">Dificuldade *</label>
+                    <select id="dificuldade" name="dificuldade" required>
+                        <option value="">Selecione</option>
+                        <option value="Fácil">Fácil</option>
+                        <option value="Médio">Médio</option>
+                        <option value="Difícil">Difícil</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="imagem">Imagem da Receita</label>
+                <input type="file" id="imagem" name="imagem" accept="image/*">
+            </div>
+            
+            <div class="form-group">
+                <label for="ingredientes">Ingredientes (um por linha) *</label>
+                <textarea id="ingredientes" name="ingredientes" rows="5" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="modo_preparo">Modo de Preparo (um passo por linha) *</label>
+                <textarea id="modo_preparo" name="modo_preparo" rows="5" required></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Adicionar Receita</button>
+                <a href="{{ url_for('receitas') }}" class="btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+
+
+

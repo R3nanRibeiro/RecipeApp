@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Meus Favoritos{% endblock %}
+
+{% block content %}
+<section class="favorites-section">
+    <div class="container">
+        <div class="page-header">
+            <h2>❤️ Minhas Receitas Favoritas</h2>
+            <p>Receitas que você salvou para ver depois</p>
+        </div>
+        
+        {% if receitas %}
+        <div class="favorites-info">
+            <p class="total-favorites">Você tem <strong>{{ receitas|length }}</strong> receita{{ 's' if receitas|length != 1 else '' }} favoritada{{ 's' if receitas|length != 1 else '' }}</p>
+        </div>
+        
+        <div class="recipes-grid">
+            {% for receita in receitas %}
+            <div class="recipe-card favorite-card">
+                {% if receita.imagem %}
+                <div class="recipe-card-image">
+                    <img src="{{ url_for('static', filename='uploads/' + receita.imagem) }}" alt="{{ receita.titulo }}">
+                    <div class="favorite-badge">❤️</div>
+                </div>
+                {% else %}
+                <div class="recipe-card-image-placeholder">
+                    <span>📸</span>
+                    <div class="favorite-badge">❤️</div>
+                </div>
+                {% endif %}
+                
+                <div class="recipe-card-content">
+                    <div class="recipe-card-header">
+                        <h3>{{ receita.titulo }}</h3>
+                        {% if receita.media_avaliacao and receita.media_avaliacao > 0 %}
+                        <div class="recipe-rating-card">
+                            <div class="stars-rating" data-rating="{{ receita.media_avaliacao }}">
+                                <span class="stars">
+                                    {% for i in range(1, 6) %}
+                                        {% if i <= receita.media_avaliacao|round|int %}
+                                            <span class="star filled">★</span>
+                                        {% elif i - 0.5 <= receita.media_avaliacao %}
+                                            <span class="star half-filled">★</span>
+                                        {% else %}
+                                            <span class="star">★</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                            </div>
+                            <span class="rating-value-small">{{ "%.1f"|format(receita.media_avaliacao) }}</span>
+                            {% if receita.total_avaliacoes > 0 %}
+                            <span class="rating-count-small">({{ receita.total_avaliacoes }})</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <p class="recipe-description">{{ receita.descricao[:100] }}{% if receita.descricao|length > 100 %}...{% endif %}</p>
+                    
+                    <div class="recipe-meta">
+                        <span class="meta-icon">⏱️</span>
+                        <span>{{ receita.tempo_preparo }}</span>
+                        <span class="meta-icon">🍽️</span>
+                        <span>{{ receita.porcoes }} porções</span>
+                        <span class="meta-icon">📊</span>
+                        <span class="recipe-difficulty">{{ receita.dificuldade }}</span>
+                        {% if receita.media_avaliacao and receita.media_avaliacao > 0 %}
+                        <div class="recipe-rating-inline">
+                            <div class="stars-rating" data-rating="{{ receita.media_avaliacao }}">
+                                <span class="stars">
+                                    {% for i in range(1, 6) %}
+                                        {% if i <= receita.media_avaliacao|round|int %}
+                                            <span class="star filled">★</span>
+                                        {% elif i - 0.5 <= receita.media_avaliacao %}
+                                            <span class="star half-filled">★</span>
+                                        {% else %}
+                                            <span class="star">★</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                            </div>
+                            <span>{{ "%.1f"|format(receita.media_avaliacao) }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="recipe-card-actions">
+                        <a href="{{ url_for('visualizar_receita', receita_id=receita.id) }}" class="btn-primary">Ver Receita</a>
+                        <form method="POST" action="{{ url_for('favoritar', recipe_id=receita.id) }}" style="display: inline;">
+                            <button type="submit" class="btn-remove-favorite" title="Remover dos favoritos">
+                                ❌ Remover
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-favorites">
+            <div class="empty-icon">❤️</div>
+            <h3>Você ainda não tem receitas favoritas</h3>
+            <p>Explore as receitas e clique no coração para salvar suas favoritas!</p>
+            <a href="{{ url_for('receitas') }}" class="btn-primary">Explorar Receitas</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<style>
+.favorites-section {
+    padding: 40px 0;
+}
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.page-header h2 {
+    font-size: 32px;
+    margin-bottom: 10px;
+    color: #333;
+}
+.page-header p {
+    color: #666;
+    font-size: 16px;
+}
+.favorites-info {
+    margin-bottom: 20px;
+    text-align: center;
+}
+.total-favorites {
+    font-size: 16px;
+    color: #666;
+}
+.total-favorites strong {
+    color: #e91e63;
+    font-size: 18px;
+}
+.recipes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    margin-top: 30px;
+}
+.favorite-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: 2px solid #f0f0f0;
+}
+.favorite-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+.recipe-card-image {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+}
+.recipe-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.recipe-card-image-placeholder {
+    width: 100%;
+    height: 200px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    font-size: 48px;
+}
+.favorite-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.recipe-card-content {
+    padding: 20px;
+}
+.recipe-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+.recipe-card-header h3 {
+    flex: 1;
+    margin: 0;
+    font-size: 20px;
+    color: #333;
+}
+.recipe-description {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    min-height: 42px;
+}
+.recipe-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.meta-icon {
+    font-size: 16px;
+}
+.recipe-card-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.btn-primary {
+    flex: 1;
+    text-align: center;
+    padding: 10px 20px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.3s;
+}
+.btn-primary:hover {
+    background: #0056b3;
+}
+.btn-remove-favorite {
+    padding: 10px 15px;
+    background: #f8f9fa;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+.btn-remove-favorite:hover {
+    background: #dc3545;
+    color: white;
+}
+.empty-favorites {
+    text-align: center;
+    padding: 60px 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin-top: 40px;
+}
+.empty-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+}
+.empty-favorites h3 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 10px;
+}
+.empty-favorites p {
+    color: #666;
+    font-size: 16px;
+    margin-bottom: 30px;
+}
+.recipe-rating-card {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+}
+.recipe-rating-card .stars-rating {
+    display: inline-flex;
+    gap: 2px;
+}
+.recipe-rating-card .star {
+    font-size: 16px;
+    color: #ddd;
+}
+.recipe-rating-card .star.filled {
+    color: #ffc107;
+}
+.recipe-rating-card .star.half-filled {
+    color: #ffc107;
+    opacity: 0.5;
+}
+.rating-value-small {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+.rating-count-small {
+    color: #666;
+    font-size: 12px;
+}
+.recipe-difficulty {
+    font-weight: 500;
+}
+.recipe-rating-inline {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.recipe-rating-inline .stars-rating {
+    display: inline-flex;
+    gap: 1px;
+}
+.recipe-rating-inline .star {
+    font-size: 14px;
+    color: #ddd;
+}
+.recipe-rating-inline .star.filled {
+    color: #ffc107;
+}
+.recipe-rating-inline .star.half-filled {
+    color: #ffc107;
+    opacity: 0.5;
+}
+</style>
+{% endblock %}
+

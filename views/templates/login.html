@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container">
+        <div class="auth-form">
+            <h2>Faça Login</h2>
+            <p>Acesse sua conta para salvar suas receitas favoritas.</p>
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label for="email">Endereço de E-mail</label>
+                    <input type="email" id="email" name="email" placeholder="Digite seu e-mail" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" name="senha" placeholder="Digite sua senha" required>
+                    <a href="{{ url_for('esqueci_senha') }}" class="forgot-password-link">Esqueci minha senha</a>
+                </div>
+
+                <div class="form-group remember-me">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="lembrar" name="lembrar" value="1">
+                        <span>Lembrar senha</span>
+                    </label>
+                    <small class="remember-hint">Mantenha-me conectado por 30 dias</small>
+                </div>
+
+                <button type="submit" class="btn-primary">Entrar</button>
+            </form>
+
+            <p class="auth-link">Não tem uma conta? <a href="{{ url_for('cadastro') }}">Crie uma conta</a></p>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,469 @@
+-- =====================================================
+-- SCRIPT DE CRIAÇÃO DO BANCO DE DADOS - RECIPE APP
+-- Trabalho Interdisciplinar: Banco de Dados / Back End / Modelagem de Software
+-- Requisitos: 10+ entidades, 4FN, Joins, Subqueries, Procedimentos
+-- =====================================================
+
+-- Criar banco de dados
+CREATE DATABASE IF NOT EXISTS recipe_app 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
+
+USE recipe_app;
+
+-- =====================================================
+-- TABELAS PRINCIPAIS (10+ ENTIDADES)
+-- =====================================================
+
+-- 1. Tabela de Usuários
+CREATE TABLE IF NOT EXISTS users (
+    email VARCHAR(255) PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    lembrar TINYINT(1) DEFAULT 0,
+    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ultimo_acesso TIMESTAMP NULL,
+    ativo TINYINT(1) DEFAULT 1,
+    CONSTRAINT chk_email_format CHECK (email LIKE '%@%.%'),
+    CONSTRAINT chk_nome_length CHECK (CHAR_LENGTH(nome) >= 3 AND CHAR_LENGTH(nome) <= 255)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. Tabela de Perfis de Usuário (normalização - 4FN)
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_email VARCHAR(255) PRIMARY KEY,
+    bio TEXT,
+    foto_perfil VARCHAR(255),
+    telefone VARCHAR(20),
+    data_nascimento DATE,
+    cidade VARCHAR(100),
+    estado VARCHAR(2),
+    pais VARCHAR(100) DEFAULT 'Brasil',
+    FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE,
+    CONSTRAINT chk_telefone_format CHECK (telefone IS NULL OR telefone REGEXP '^[0-9+()-]+$')
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. Tabela de Categorias
+CREATE TABLE IF NOT EXISTS categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL UNIQUE,
+    descricao TEXT,
+    icone VARCHAR(50),
+    ativa TINYINT(1) DEFAULT 1,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_categoria_nome CHECK (CHAR_LENGTH(nome) >= 2 AND CHAR_LENGTH(nome) <= 100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. Tabela de Receitas
+CREATE TABLE IF NOT EXISTS recipes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    categoria_id INT,
+    tempo_preparo VARCHAR(50),
+    porcoes INT,
+    dificuldade ENUM('Fácil', 'Médio', 'Difícil') NOT NULL,
+    autor_email VARCHAR(255) NOT NULL,
+    autor VARCHAR(255) NOT NULL,
+    imagem VARCHAR(255),
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    visualizacoes INT DEFAULT 0,
+    ativa TINYINT(1) DEFAULT 1,
+    FOREIGN KEY (categoria_id) REFERENCES categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (autor_email) REFERENCES users(email) ON DELETE CASCADE,
+    CONSTRAINT chk_titulo_length CHECK (CHAR_LENGTH(titulo) >= 3 AND CHAR_LENGTH(titulo) <= 255),
+    CONSTRAINT chk_porcoes_positive CHECK (porcoes IS NULL OR porcoes > 0),
+    CONSTRAINT chk_visualizacoes_non_negative CHECK (visualizacoes >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. Tabela de Ingredientes (normalização - 4FN)
+CREATE TABLE IF NOT EXISTS ingredients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL UNIQUE,
+    unidade_medida VARCHAR(50),
+    tipo VARCHAR(100),
+    descricao TEXT,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_ingrediente_nome CHECK (CHAR_LENGTH(nome) >= 2 AND CHAR_LENGTH(nome) <= 255)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 6. Tabela de Relação Receita-Ingrediente (normalização - 4FN)
+CREATE TABLE IF NOT EXISTS recipe_ingredients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_id INT NOT NULL,
+    ingredient_id INT,
+    quantidade DECIMAL(10,2),
+    unidade VARCHAR(50),
+    observacao VARCHAR(255),
+    ordem INT DEFAULT 1,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+    FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE SET NULL,
+    CONSTRAINT chk_quantidade_positive CHECK (quantidade IS NULL OR quantidade > 0),
+    CONSTRAINT uk_recipe_ingredient_order UNIQUE (recipe_id, ordem)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 7. Tabela de Passos do Modo de Preparo (normalização - 4FN)
+CREATE TABLE IF NOT EXISTS recipe_steps (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_id INT NOT NULL,
+    passo_numero INT NOT NULL,
+    descricao TEXT NOT NULL,
+    tempo_minutos INT,
+    imagem VARCHAR(255),
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+    CONSTRAINT chk_passo_numero_positive CHECK (passo_numero > 0),
+    CONSTRAINT chk_tempo_positive CHECK (tempo_minutos IS NULL OR tempo_minutos >= 0),
+    CONSTRAINT uk_recipe_step_order UNIQUE (recipe_id, passo_numero)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. Tabela de Comentários
+CREATE TABLE IF NOT EXISTS comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_id INT NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
+    conteudo TEXT NOT NULL,
+    data_comentario TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    editado TINYINT(1) DEFAULT 0,
+    ativo TINYINT(1) DEFAULT 1,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE,
+    CONSTRAINT chk_comentario_length CHECK (CHAR_LENGTH(conteudo) >= 1 AND CHAR_LENGTH(conteudo) <= 2000)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 9. Tabela de Favoritos
+CREATE TABLE IF NOT EXISTS favorites (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_id INT NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
+    data_favorito TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE,
+    CONSTRAINT uk_user_recipe_favorite UNIQUE (user_email, recipe_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10. Tabela de Avaliações (Ratings)
+CREATE TABLE IF NOT EXISTS recipe_ratings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    recipe_id INT NOT NULL,
+    user_email VARCHAR(255) NOT NULL,
+    nota INT NOT NULL,
+    comentario TEXT,
+    data_avaliacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE,
+    CONSTRAINT chk_nota_range CHECK (nota >= 1 AND nota <= 5),
+    CONSTRAINT uk_user_recipe_rating UNIQUE (user_email, recipe_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. Tabela de Logs de Acesso
+CREATE TABLE IF NOT EXISTS access_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_email VARCHAR(255),
+    endpoint VARCHAR(255) NOT NULL,
+    metodo VARCHAR(10) NOT NULL,
+    ip_address VARCHAR(45),
+    data_acesso TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status_code INT,
+    tempo_resposta_ms INT,
+    FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE SET NULL,
+    CONSTRAINT chk_status_code_valid CHECK (status_code IS NULL OR (status_code >= 100 AND status_code <= 599)),
+    CONSTRAINT chk_tempo_resposta_positive CHECK (tempo_resposta_ms IS NULL OR tempo_resposta_ms >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 12. Tabela de Tokens de Reset de Senha
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_email VARCHAR(255) NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_expiracao TIMESTAMP NOT NULL,
+    usado TINYINT(1) DEFAULT 0,
+    FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE,
+    CONSTRAINT chk_expiracao_futura CHECK (data_expiracao > data_criacao)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- ÍNDICES PARA MELHOR PERFORMANCE
+-- =====================================================
+
+CREATE INDEX idx_recipes_categoria ON recipes(categoria_id);
+CREATE INDEX idx_recipes_autor ON recipes(autor_email);
+CREATE INDEX idx_recipes_data_criacao ON recipes(data_criacao DESC);
+CREATE INDEX idx_comments_recipe ON comments(recipe_id);
+CREATE INDEX idx_comments_user ON comments(user_email);
+CREATE INDEX idx_favorites_user ON favorites(user_email);
+CREATE INDEX idx_favorites_recipe ON favorites(recipe_id);
+CREATE INDEX idx_ratings_recipe ON recipe_ratings(recipe_id);
+CREATE INDEX idx_access_logs_user ON access_logs(user_email);
+CREATE INDEX idx_access_logs_data ON access_logs(data_acesso DESC);
+CREATE INDEX idx_password_resets_token ON password_resets(token);
+CREATE INDEX idx_password_resets_email ON password_resets(user_email);
+
+-- =====================================================
+-- PROCEDIMENTOS ARMAZENADOS
+-- =====================================================
+
+DELIMITER //
+
+-- Procedimento 1: Calcular média de avaliações de uma receita
+CREATE PROCEDURE IF NOT EXISTS sp_calcular_media_avaliacoes(
+    IN p_recipe_id INT,
+    OUT p_media DECIMAL(3,2),
+    OUT p_total_avaliacoes INT
+)
+BEGIN
+    SELECT 
+        COALESCE(AVG(nota), 0) AS media,
+        COUNT(*) AS total
+    INTO p_media, p_total_avaliacoes
+    FROM recipe_ratings
+    WHERE recipe_id = p_recipe_id;
+    
+    -- Atualiza a visualização (pode ser usado para cache)
+    UPDATE recipes 
+    SET visualizacoes = (
+        SELECT COUNT(*) 
+        FROM access_logs 
+        WHERE endpoint LIKE CONCAT('%', p_recipe_id, '%')
+    )
+    WHERE id = p_recipe_id;
+END //
+
+-- Procedimento 2: Obter estatísticas de um usuário
+CREATE PROCEDURE IF NOT EXISTS sp_estatisticas_usuario(
+    IN p_user_email VARCHAR(255),
+    OUT p_total_receitas INT,
+    OUT p_total_favoritos INT,
+    OUT p_total_comentarios INT,
+    OUT p_media_avaliacoes DECIMAL(3,2)
+)
+BEGIN
+    -- Total de receitas
+    SELECT COUNT(*) INTO p_total_receitas
+    FROM recipes
+    WHERE autor_email = p_user_email AND ativa = 1;
+    
+    -- Total de favoritos
+    SELECT COUNT(*) INTO p_total_favoritos
+    FROM favorites
+    WHERE user_email = p_user_email;
+    
+    -- Total de comentários
+    SELECT COUNT(*) INTO p_total_comentarios
+    FROM comments
+    WHERE user_email = p_user_email AND ativo = 1;
+    
+    -- Média de avaliações recebidas nas receitas do usuário
+    SELECT COALESCE(AVG(rr.nota), 0) INTO p_media_avaliacoes
+    FROM recipe_ratings rr
+    INNER JOIN recipes r ON rr.recipe_id = r.id
+    WHERE r.autor_email = p_user_email;
+END //
+
+-- Procedimento 3: Limpar tokens de reset expirados
+CREATE PROCEDURE IF NOT EXISTS sp_limpar_tokens_expirados()
+BEGIN
+    DELETE FROM password_resets
+    WHERE data_expiracao < NOW() OR usado = 1;
+    
+    SELECT ROW_COUNT() AS tokens_removidos;
+END //
+
+DELIMITER ;
+
+-- =====================================================
+-- VIEWS (Consultas Complexas com JOIN e Subqueries)
+-- =====================================================
+
+-- View 1: Receitas com informações completas (JOIN e Subquery)
+CREATE OR REPLACE VIEW vw_receitas_completas AS
+SELECT 
+    r.id,
+    r.titulo,
+    r.descricao,
+    r.tempo_preparo,
+    r.porcoes,
+    r.dificuldade,
+    r.autor,
+    r.autor_email,
+    r.imagem,
+    r.data_criacao,
+    r.visualizacoes,
+    c.nome AS categoria_nome,
+    c.descricao AS categoria_descricao,
+    (SELECT COALESCE(AVG(nota), 0) FROM recipe_ratings WHERE recipe_id = r.id) AS media_avaliacao,
+    (SELECT COUNT(*) FROM recipe_ratings WHERE recipe_id = r.id) AS total_avaliacoes,
+    (SELECT COUNT(*) FROM comments WHERE recipe_id = r.id AND ativo = 1) AS total_comentarios,
+    (SELECT COUNT(*) FROM favorites WHERE recipe_id = r.id) AS total_favoritos
+FROM recipes r
+LEFT JOIN categories c ON r.categoria_id = c.id
+WHERE r.ativa = 1;
+
+-- View 2: Top receitas mais populares (JOIN e Subquery)
+CREATE OR REPLACE VIEW vw_top_receitas AS
+SELECT 
+    r.id,
+    r.titulo,
+    r.autor,
+    c.nome AS categoria,
+    r.visualizacoes,
+    (SELECT COUNT(*) FROM favorites f WHERE f.recipe_id = r.id) AS num_favoritos,
+    (SELECT COALESCE(AVG(nota), 0) FROM recipe_ratings rr WHERE rr.recipe_id = r.id) AS nota_media,
+    (r.visualizacoes * 0.3 + 
+     (SELECT COUNT(*) FROM favorites f WHERE f.recipe_id = r.id) * 0.4 + 
+     (SELECT COALESCE(AVG(nota), 0) FROM recipe_ratings rr WHERE rr.recipe_id = r.id) * 10 * 0.3) AS score_popularidade
+FROM recipes r
+LEFT JOIN categories c ON r.categoria_id = c.id
+WHERE r.ativa = 1
+ORDER BY score_popularidade DESC
+LIMIT 10;
+
+-- View 3: Comentários com informações do usuário (JOIN)
+CREATE OR REPLACE VIEW vw_comentarios_detalhados AS
+SELECT 
+    c.id,
+    c.recipe_id,
+    r.titulo AS receita_titulo,
+    c.user_email,
+    u.nome AS usuario_nome,
+    c.conteudo,
+    c.data_comentario,
+    c.editado,
+    (SELECT COUNT(*) FROM comments c2 WHERE c2.recipe_id = c.recipe_id AND c2.id <= c.id) AS ordem_comentario
+FROM comments c
+INNER JOIN recipes r ON c.recipe_id = r.id
+INNER JOIN users u ON c.user_email = u.email
+WHERE c.ativo = 1
+ORDER BY c.recipe_id, c.data_comentario;
+
+-- =====================================================
+-- TRIGGERS PARA VALIDAÇÃO E CONSISTÊNCIA
+-- =====================================================
+
+DELIMITER //
+
+-- Trigger 1: Validar email antes de inserir usuário
+CREATE TRIGGER IF NOT EXISTS trg_users_before_insert
+BEFORE INSERT ON users
+FOR EACH ROW
+BEGIN
+    IF NEW.email NOT LIKE '%@%.%' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Email inválido';
+    END IF;
+    
+    IF CHAR_LENGTH(NEW.nome) < 3 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Nome deve ter pelo menos 3 caracteres';
+    END IF;
+END //
+
+-- Trigger 2: Atualizar data de atualização ao modificar receita
+CREATE TRIGGER IF NOT EXISTS trg_recipes_before_update
+BEFORE UPDATE ON recipes
+FOR EACH ROW
+BEGIN
+    SET NEW.data_atualizacao = CURRENT_TIMESTAMP;
+    
+    -- Validar porções
+    IF NEW.porcoes IS NOT NULL AND NEW.porcoes <= 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Porções deve ser maior que zero';
+    END IF;
+    
+    -- Validar visualizações não negativas
+    IF NEW.visualizacoes < 0 THEN
+        SET NEW.visualizacoes = 0;
+    END IF;
+END //
+
+-- Trigger 3: Validar avaliação antes de inserir
+CREATE TRIGGER IF NOT EXISTS trg_ratings_before_insert
+BEFORE INSERT ON recipe_ratings
+FOR EACH ROW
+BEGIN
+    IF NEW.nota < 1 OR NEW.nota > 5 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Nota deve estar entre 1 e 5';
+    END IF;
+END //
+
+-- Trigger 4: Limpar favoritos quando receita é deletada (já tem CASCADE, mas pode adicionar log)
+CREATE TRIGGER IF NOT EXISTS trg_recipes_after_delete
+AFTER DELETE ON recipes
+FOR EACH ROW
+BEGIN
+    -- Log pode ser adicionado aqui se necessário
+    DELETE FROM favorites WHERE recipe_id = OLD.id;
+    DELETE FROM comments WHERE recipe_id = OLD.id;
+    DELETE FROM recipe_ratings WHERE recipe_id = OLD.id;
+END //
+
+DELIMITER ;
+
+-- =====================================================
+-- DADOS INICIAIS (INSERTS)
+-- =====================================================
+
+-- Inserir categorias padrão
+INSERT INTO categories (nome, descricao, icone, ativa) VALUES
+('doce', 'Receitas doces e sobremesas', '🍰', 1),
+('salgado', 'Receitas salgadas e pratos principais', '🍽️', 1),
+('vegano', 'Receitas veganas sem ingredientes de origem animal', '🌱', 1),
+('massas', 'Receitas com massas e macarrão', '🍝', 1)
+ON DUPLICATE KEY UPDATE nome = nome;
+
+-- Inserir alguns ingredientes comuns
+INSERT INTO ingredients (nome, unidade_medida, tipo) VALUES
+('Farinha de trigo', 'xícara', 'Cereais'),
+('Açúcar', 'xícara', 'Açúcares'),
+('Ovos', 'unidade', 'Proteínas'),
+('Leite', 'ml', 'Laticínios'),
+('Manteiga', 'colher de sopa', 'Gorduras'),
+('Sal', 'colher de chá', 'Temperos'),
+('Azeite', 'ml', 'Gorduras'),
+('Cebola', 'unidade', 'Vegetais'),
+('Alho', 'dente', 'Temperos'),
+('Tomate', 'unidade', 'Vegetais')
+ON DUPLICATE KEY UPDATE nome = nome;
+
+-- =====================================================
+-- CONSULTAS DE EXEMPLO (JOIN, SUBQUERY, APELIDOS)
+-- =====================================================
+
+-- Exemplo 1: Consulta com JOIN e Subquery (para referência)
+-- SELECT 
+--     r.id,
+--     r.titulo,
+--     u.nome AS autor,
+--     c.nome AS categoria,
+--     (SELECT COUNT(*) FROM favorites f WHERE f.recipe_id = r.id) AS total_favoritos,
+--     (SELECT COALESCE(AVG(nota), 0) FROM recipe_ratings rr WHERE rr.recipe_id = r.id) AS media_avaliacao
+-- FROM recipes r
+-- INNER JOIN users u ON r.autor_email = u.email
+-- LEFT JOIN categories c ON r.categoria_id = c.id
+-- WHERE r.ativa = 1
+-- ORDER BY total_favoritos DESC;
+
+-- Exemplo 2: Consulta com múltiplos JOINs e apelidos
+-- SELECT 
+--     r.titulo AS receita,
+--     u.nome AS autor,
+--     c.nome AS categoria,
+--     COUNT(DISTINCT f.id) AS num_favoritos,
+--     COUNT(DISTINCT com.id) AS num_comentarios,
+--     AVG(rr.nota) AS nota_media
+-- FROM recipes r
+-- INNER JOIN users u ON r.autor_email = u.email
+-- LEFT JOIN categories c ON r.categoria_id = c.id
+-- LEFT JOIN favorites f ON r.id = f.recipe_id
+-- LEFT JOIN comments com ON r.id = com.recipe_id
+-- LEFT JOIN recipe_ratings rr ON r.id = rr.recipe_id
+-- WHERE r.ativa = 1
+-- GROUP BY r.id, r.titulo, u.nome, c.nome
+-- HAVING nota_media >= 4.0 OR num_favoritos >= 5;
+
+-- =====================================================
+-- FIM DO SCRIPT
+-- =====================================================
+

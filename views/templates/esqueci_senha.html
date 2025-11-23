@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Esqueci minha senha{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+    <div class="container">
+        <div class="auth-form">
+            <h2>Recuperar Senha</h2>
+            <p>Digite seu e-mail para redefinir sua senha.</p>
+
+            <form method="POST" action="{{ url_for('esqueci_senha') }}">
+                <div class="form-group">
+                    <label for="email">Endereço de E-mail</label>
+                    <input type="email" id="email" name="email" placeholder="Digite seu e-mail" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Enviar</button>
+            </form>
+
+            {% if show_dev_link %}
+            <div class="dev-info" style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+                <p style="margin: 0 0 10px 0; font-weight: bold; color: #856404;">⚠️ Modo Desenvolvimento</p>
+                <p style="margin: 0 0 10px 0; color: #856404;">Em produção, este link seria enviado por email para: <strong>{{ email }}</strong></p>
+                <p style="margin: 0; color: #856404;">
+                    <strong>Link de recuperação:</strong><br>
+                    <a href="{{ reset_url }}" style="color: #e74c3c; word-break: break-all;">{{ reset_url }}</a>
+                </p>
+            </div>
+            {% endif %}
+
+            <p class="auth-link">
+                <a href="{{ url_for('login') }}">Voltar para o login</a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+
+{% block title %}{{ receita.titulo }}{% endblock %}
+
+{% block content %}
+<section class="recipe-detail">
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="{{ url_for('index') }}">Home</a> / 
+            <a href="{{ url_for('receitas') }}">Receitas</a> / 
+            <span>{{ receita.titulo }}</span>
+        </div>
+        
+        <div class="recipe-header">
+            <div class="header-left">
+                <h1>{{ receita.titulo }}</h1>
+                <div class="recipe-info-header">
+                    <span class="recipe-tag">{{ receita.dificuldade }}</span>
+                    {% if receita.media_avaliacao > 0 %}
+                    <div class="rating-display">
+                        <div class="stars-rating" data-rating="{{ receita.media_avaliacao }}">
+                            <span class="stars">
+                                {% for i in range(1, 6) %}
+                                    {% if i <= receita.media_avaliacao|round|int %}
+                                        <span class="star filled">★</span>
+                                    {% elif i - 0.5 <= receita.media_avaliacao %}
+                                        <span class="star half-filled">★</span>
+                                    {% else %}
+                                        <span class="star">★</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                            <span class="rating-value">{{ "%.1f"|format(receita.media_avaliacao) }}</span>
+                            <span class="rating-count">({{ receita.total_avaliacoes }} avaliação{{ 'ões' if receita.total_avaliacoes != 1 else '' }})</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <span class="no-rating">Sem avaliações ainda</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="header-right">
+                {% if 'user_email' in session %}
+                <form method="POST" action="{{ url_for('favoritar', recipe_id=receita_id) }}" style="display: inline;">
+                    <button type="submit" class="btn-favorite {% if is_favorite %}favorited{% endif %}" title="{% if is_favorite %}Remover dos favoritos{% else %}Adicionar aos favoritos{% endif %}">
+                        <span class="heart-icon">{{ '❤️' if is_favorite else '🤍' }}</span>
+                        <span>{% if is_favorite %}Favoritado{% else %}Favoritar{% endif %}</span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        
+        <p class="recipe-description">{{ receita.descricao }}</p>
+        
+        {% if receita.imagem %}
+        <div class="recipe-image">
+            <img src="{{ url_for('static', filename='uploads/' + receita.imagem) }}" alt="{{ receita.titulo }}">
+        </div>
+        {% endif %}
+        
+        <div class="recipe-meta">
+            <div class="meta-item">
+                <span class="meta-label">Tempo de Preparo</span>
+                <span class="meta-value">{{ receita.tempo_preparo }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Porções</span>
+                <span class="meta-value">{{ receita.porcoes }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Dificuldade</span>
+                <span class="meta-value">{{ receita.dificuldade }}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Autor</span>
+                <span class="meta-value">{{ receita.autor }}</span>
+            </div>
+        </div>
+        
+        <div class="recipe-content">
+            <div class="ingredients">
+                <h2>Ingredientes</h2>
+                <ul>
+                    {% for ingrediente in receita.ingredientes %}
+                    <li>{{ ingrediente }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            
+            <div class="instructions">
+                <h2>Modo de Preparo</h2>
+                <ol>
+                    {% for passo in receita.modo_preparo %}
+                    <li>{{ passo }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+        </div>
+        
+        <!-- Sistema de Avaliação -->
+        <div class="rating-section">
+            <h2>Avaliações</h2>
+            
+            {% if stats_avaliacoes.total > 0 %}
+            <div class="rating-summary">
+                <div class="rating-stats">
+                    <div class="overall-rating">
+                        <span class="big-rating">{{ "%.1f"|format(stats_avaliacoes.media) }}</span>
+                        <div class="stars-rating" data-rating="{{ stats_avaliacoes.media }}">
+                            <span class="stars">
+                                {% for i in range(1, 6) %}
+                                    {% if i <= stats_avaliacoes.media|round|int %}
+                                        <span class="star filled">★</span>
+                                    {% elif i - 0.5 <= stats_avaliacoes.media %}
+                                        <span class="star half-filled">★</span>
+                                    {% else %}
+                                        <span class="star">★</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                        </div>
+                        <span class="total-reviews">{{ stats_avaliacoes.total }} avaliação{{ 'ões' if stats_avaliacoes.total != 1 else '' }}</span>
+                    </div>
+                    <div class="rating-breakdown">
+                        <div class="rating-bar-row">
+                            <span class="rating-label">5 ★</span>
+                            <div class="rating-bar">
+                                <div class="rating-bar-fill" style="width: {{ (stats_avaliacoes.cinco_estrelas / stats_avaliacoes.total * 100) if stats_avaliacoes.total > 0 else 0 }}%"></div>
+                            </div>
+                            <span class="rating-count">{{ stats_avaliacoes.cinco_estrelas }}</span>
+                        </div>
+                        <div class="rating-bar-row">
+                            <span class="rating-label">4 ★</span>
+                            <div class="rating-bar">
+                                <div class="rating-bar-fill" style="width: {{ (stats_avaliacoes.quatro_estrelas / stats_avaliacoes.total * 100) if stats_avaliacoes.total > 0 else 0 }}%"></div>
+                            </div>
+                            <span class="rating-count">{{ stats_avaliacoes.quatro_estrelas }}</span>
+                        </div>
+                        <div class="rating-bar-row">
+                            <span class="rating-label">3 ★</span>
+                            <div class="rating-bar">
+                                <div class="rating-bar-fill" style="width: {{ (stats_avaliacoes.tres_estrelas / stats_avaliacoes.total * 100) if stats_avaliacoes.total > 0 else 0 }}%"></div>
+                            </div>
+                            <span class="rating-count">{{ stats_avaliacoes.tres_estrelas }}</span>
+                        </div>
+                        <div class="rating-bar-row">
+                            <span class="rating-label">2 ★</span>
+                            <div class="rating-bar">
+                                <div class="rating-bar-fill" style="width: {{ (stats_avaliacoes.duas_estrelas / stats_avaliacoes.total * 100) if stats_avaliacoes.total > 0 else 0 }}%"></div>
+                            </div>
+                            <span class="rating-count">{{ stats_avaliacoes.duas_estrelas }}</span>
+                        </div>
+                        <div class="rating-bar-row">
+                            <span class="rating-label">1 ★</span>
+                            <div class="rating-bar">
+                                <div class="rating-bar-fill" style="width: {{ (stats_avaliacoes.uma_estrela / stats_avaliacoes.total * 100) if stats_avaliacoes.total > 0 else 0 }}%"></div>
+                            </div>
+                            <span class="rating-count">{{ stats_avaliacoes.uma_estrela }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if 'user_email' in session and receita.autor_email != session.user_email %}
+            <div class="rating-form-section">
+                <h3>{% if user_rating %}Sua Avaliação{% else %}Deixe sua Avaliação{% endif %}</h3>
+                <form method="POST" action="{{ url_for('avaliar_receita', recipe_id=receita_id) }}" class="rating-form" id="ratingForm">
+                    <div class="star-input-container">
+                        <label class="star-label">Avalie esta receita:</label>
+                        <div class="star-rating-input" data-recipe-id="{{ receita_id }}" id="starRating">
+                            <input type="radio" name="nota" value="5" id="star5_{{ receita_id }}" {% if user_rating and user_rating.get('nota') == 5 %}checked{% endif %} required>
+                            <label for="star5_{{ receita_id }}" class="star" data-rating="5" title="5 estrelas - Excelente">★</label>
+                            
+                            <input type="radio" name="nota" value="4" id="star4_{{ receita_id }}" {% if user_rating and user_rating.get('nota') == 4 %}checked{% endif %}>
+                            <label for="star4_{{ receita_id }}" class="star" data-rating="4" title="4 estrelas - Muito bom">★</label>
+                            
+                            <input type="radio" name="nota" value="3" id="star3_{{ receita_id }}" {% if user_rating and user_rating.get('nota') == 3 %}checked{% endif %}>
+                            <label for="star3_{{ receita_id }}" class="star" data-rating="3" title="3 estrelas - Bom">★</label>
+                            
+                            <input type="radio" name="nota" value="2" id="star2_{{ receita_id }}" {% if user_rating and user_rating.get('nota') == 2 %}checked{% endif %}>
+                            <label for="star2_{{ receita_id }}" class="star" data-rating="2" title="2 estrelas - Regular">★</label>
+                            
+                            <input type="radio" name="nota" value="1" id="star1_{{ receita_id }}" {% if user_rating and user_rating.get('nota') == 1 %}checked{% endif %}>
+                            <label for="star1_{{ receita_id }}" class="star" data-rating="1" title="1 estrela - Ruim">★</label>
+                        </div>
+                        <span class="rating-text" id="ratingText">Clique em uma estrela para avaliar</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="comentario_avaliacao_{{ receita_id }}">Comentário (opcional):</label>
+                        <textarea name="comentario" id="comentario_avaliacao_{{ receita_id }}" rows="4" placeholder="Deixe um comentário sobre a receita...">{{ user_rating.comentario if user_rating and user_rating.get('comentario') else '' }}</textarea>
+                        <small>Compartilhe sua experiência com esta receita</small>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary btn-submit-rating">
+                            {% if user_rating %}💾 Atualizar Avaliação{% else %}⭐ Enviar Avaliação{% endif %}
+                        </button>
+                        {% if user_rating %}
+                        <form method="POST" action="{{ url_for('remover_avaliacao', recipe_id=receita_id) }}" style="display: inline;">
+                            <button type="submit" class="btn-secondary" onclick="return confirm('Tem certeza que deseja remover sua avaliação?')">🗑️ Remover Avaliação</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+            {% elif 'user_email' not in session %}
+            <div class="rating-form-section">
+                <div class="login-prompt">
+                    <p>💡 <a href="{{ url_for('login') }}">Faça login</a> para avaliar esta receita!</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Lista de Avaliações -->
+            {% if avaliacoes %}
+            <div class="reviews-list">
+                <h3>Avaliações dos Usuários</h3>
+                {% for avaliacao in avaliacoes %}
+                <div class="review-item">
+                    <div class="review-header">
+                        <div class="reviewer-info">
+                            <span class="reviewer-name">{{ avaliacao.user_name or avaliacao.user_email }}</span>
+                            <span class="review-date">{{ avaliacao.data_avaliacao.strftime('%d/%m/%Y') if avaliacao.data_avaliacao else '' }}</span>
+                        </div>
+                        <div class="review-rating">
+                            {% for i in range(1, 6) %}
+                                {% if i <= avaliacao.nota %}
+                                    <span class="star filled">★</span>
+                                {% else %}
+                                    <span class="star">★</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% if avaliacao.comentario %}
+                    <p class="review-comment">{{ avaliacao.comentario }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Comentários -->
+        <div class="comments-section">
+            <h2>Comentários ({{ comentarios|length }})</h2>
+            
+            {% if 'user_email' in session %}
+            <form method="POST" action="{{ url_for('comentar', recipe_id=receita_id) }}" class="comment-form">
+                <div class="form-group">
+                    <textarea name="comentario" rows="3" placeholder="Deixe um comentário..." required></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Comentar</button>
+            </form>
+            {% endif %}
+            
+            {% if comentarios %}
+            <div class="comments-list">
+                {% for comentario in comentarios %}
+                <div class="comment-item">
+                    <div class="comment-header">
+                        <span class="comment-author">{{ comentario.user_name or comentario.user_email }}</span>
+                        <span class="comment-date">{{ comentario.data_comentario.strftime('%d/%m/%Y %H:%M') if comentario.data_comentario else '' }}</span>
+                    </div>
+                    <p class="comment-text">{{ comentario.conteudo }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="no-comments">Nenhum comentário ainda. Seja o primeiro a comentar!</p>
+            {% endif %}
+        </div>
+        
+        <div class="recipe-actions">
+            <a href="{{ url_for('download_receita', receita_id=receita_id) }}" class="btn-secondary">Download PDF</a>
+            {% if 'user_email' in session and receita.autor_email == session.user_email %}
+            <a href="{{ url_for('editar_receita', receita_id=receita_id) }}" class="btn-secondary">Editar</a>
+            <form method="POST" action="{{ url_for('excluir_receita', receita_id=receita_id) }}" style="display: inline;">
+                <button type="submit" class="btn-danger" onclick="return confirm('Tem certeza que deseja excluir esta receita?')">Excluir</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<style>
+.recipe-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+.header-left {
+    flex: 1;
+}
+.header-right {
+    margin-left: 20px;
+}
+.recipe-info-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+.rating-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.stars-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+.stars-rating .star {
+    font-size: 20px;
+    color: #ddd;
+    cursor: default;
+}
+.stars-rating .star.filled {
+    color: #ffc107;
+}
+.stars-rating .star.half-filled {
+    color: #ffc107;
+    opacity: 0.5;
+}
+.rating-value {
+    font-weight: bold;
+    font-size: 18px;
+    color: #333;
+}
+.rating-count {
+    color: #666;
+    font-size: 14px;
+}
+.no-rating {
+    color: #999;
+    font-size: 14px;
+}
+.btn-favorite {
+    padding: 8px 16px;
+    border: 2px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.btn-favorite.favorited {
+    border-color: #e91e63;
+    color: #e91e63;
+}
+.rating-section {
+    margin: 40px 0;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+.rating-summary {
+    margin: 20px 0;
+}
+.overall-rating {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.big-rating {
+    font-size: 48px;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 10px;
+}
+.rating-breakdown {
+    max-width: 400px;
+    margin: 0 auto;
+}
+.rating-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.rating-label {
+    width: 40px;
+    font-size: 14px;
+}
+.rating-bar {
+    flex: 1;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.rating-bar-fill {
+    height: 100%;
+    background: #ffc107;
+    transition: width 0.3s;
+}
+.rating-form-section {
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 1px solid #ddd;
+}
+.star-input-container {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 2px solid #e0e0e0;
+}
+.star-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+}
+.star-rating-input {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.star-rating-input input[type="radio"] {
+    display: none;
+}
+.star-rating-input label.star {
+    font-size: 40px;
+    color: #ddd;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    line-height: 1;
+}
+.star-rating-input label.star:hover {
+    transform: scale(1.2);
+    color: #ffc107;
+}
+.star-rating-input input[type="radio"]:checked ~ label.star,
+.star-rating-input label.star:hover ~ label.star {
+    color: #ffc107;
+}
+.star-rating-input input[type="radio"]:checked + label.star {
+    color: #ffc107;
+    text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+}
+.rating-text {
+    display: block;
+    margin-top: 8px;
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+.rating-text.active {
+    color: #ffc107;
+    font-weight: 500;
+}
+.form-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.btn-submit-rating {
+    min-width: 200px;
+}
+.login-prompt {
+    padding: 20px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    text-align: center;
+}
+.login-prompt p {
+    margin: 0;
+    color: #856404;
+}
+.login-prompt a {
+    color: #e74c3c;
+    font-weight: 600;
+    text-decoration: underline;
+}
+.reviews-list, .comments-list {
+    margin-top: 30px;
+}
+.review-item, .comment-item {
+    padding: 15px;
+    background: white;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+}
+.review-header, .comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.reviewer-name, .comment-author {
+    font-weight: bold;
+}
+.review-date, .comment-date {
+    color: #666;
+    font-size: 14px;
+}
+.review-comment, .comment-text {
+    margin-top: 10px;
+    line-height: 1.6;
+}
+.comment-form {
+    margin-bottom: 20px;
+}
+.no-comments {
+    color: #999;
+    font-style: italic;
+    margin: 20px 0;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const starRating = document.getElementById('starRating');
+    if (starRating) {
+        const starInputs = starRating.querySelectorAll('input[type="radio"]');
+        const starLabels = starRating.querySelectorAll('label.star');
+        const ratingText = document.getElementById('ratingText');
+        
+        const ratingLabels = {
+            1: '1 estrela - Ruim',
+            2: '2 estrelas - Regular',
+            3: '3 estrelas - Bom',
+            4: '4 estrelas - Muito bom',
+            5: '5 estrelas - Excelente'
+        };
+        
+        // Função para atualizar visualização das estrelas
+        function updateStars(value) {
+            starLabels.forEach((label, index) => {
+                const rating = 5 - index;
+                if (rating <= value) {
+                    label.style.color = '#ffc107';
+                    label.style.transform = 'scale(1)';
+                } else {
+                    label.style.color = '#ddd';
+                    label.style.transform = 'scale(1)';
+                }
+            });
+            
+            if (ratingText && value > 0) {
+                ratingText.textContent = ratingLabels[value];
+                ratingText.classList.add('active');
+            } else if (ratingText) {
+                ratingText.textContent = 'Clique em uma estrela para avaliar';
+                ratingText.classList.remove('active');
+            }
+        }
+        
+        // Event listeners para inputs
+        starInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                const value = parseInt(this.value);
+                updateStars(value);
+            });
+            
+            input.addEventListener('focus', function() {
+                const value = parseInt(this.value);
+                updateStars(value);
+            });
+        });
+        
+        // Event listeners para labels (hover)
+        starLabels.forEach(label => {
+            label.addEventListener('mouseenter', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                updateStars(rating);
+            });
+        });
+        
+        starRating.addEventListener('mouseleave', function() {
+            const checked = starRating.querySelector('input[type="radio"]:checked');
+            if (checked) {
+                updateStars(parseInt(checked.value));
+            } else {
+                updateStars(0);
+            }
+        });
+        
+        // Inicializar com valor selecionado
+        const checkedInput = starRating.querySelector('input[type="radio"]:checked');
+        if (checkedInput) {
+            updateStars(parseInt(checkedInput.value));
+        }
+        
+        // Validação do formulário
+        const ratingForm = document.getElementById('ratingForm');
+        if (ratingForm) {
+            ratingForm.addEventListener('submit', function(e) {
+                const selectedRating = starRating.querySelector('input[type="radio"]:checked');
+                if (!selectedRating) {
+                    e.preventDefault();
+                    alert('Por favor, selecione uma nota antes de enviar!');
+                    return false;
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

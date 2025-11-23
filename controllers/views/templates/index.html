@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <h2>Explore Nossas Receitas</h2>
+        <p>Descubra novos sabores e inspire-se na cozinha</p>
+    </div>
+</section>
+
+<section class="featured-recipes">
+    <div class="container">
+        <h3>Receitas em Destaque</h3>
+        <div class="recipe-grid">
+            <div class="recipe-card">
+                <h4>Bolo de Cenoura com Cobertura de Chocolate</h4>
+                <p>Um bolo forinho e clássico, perfeito para o café da tarde em família.</p>
+            </div>
+            <div class="recipe-card">
+                <h4>Lasanha à Bolonhesa Clássica</h4>
+                <p>Camadas de massa, molho rico e queijo derretido, um prato que agrada a todos.</p>
+            </div>
+            <div class="recipe-card">
+                <h4>Moqueca de Banana da Terra Vegana</h4>
+                <p>Uma versão surpreendente e deliciosa do clássico brasileiro, sem ingredientes de origem animal.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="newsletter">
+    <div class="container">
+        <h3>Receba Novas Receitas</h3>
+        <p>Inscreva-se para receber receitas exclusivas toda semana</p>
+        <form class="newsletter-form">
+            <input type="email" placeholder="Seu e-mail" required>
+            <button type="submit">Inscrever</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

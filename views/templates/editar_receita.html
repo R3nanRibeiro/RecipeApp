@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Receita{% endblock %}
+
+{% block content %}
+<section class="recipe-form-section">
+    <div class="container">
+        <h2>Editar Receita</h2>
+        
+        <form method="POST" action="{{ url_for('editar_receita', receita_id=receita_id) }}" enctype="multipart/form-data">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="titulo">Título da Receita *</label>
+                    <input type="text" id="titulo" name="titulo" value="{{ receita.titulo }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="categoria">Categoria *</label>
+                    <select id="categoria" name="categoria" required>
+                        <option value="">Selecione</option>
+                        <option value="doce" {% if receita.categoria == 'doce' %}selected{% endif %}>Doce</option>
+                        <option value="salgado" {% if receita.categoria == 'salgado' %}selected{% endif %}>Salgado</option>
+                        <option value="vegano" {% if receita.categoria == 'vegano' %}selected{% endif %}>Vegano</option>
+                        <option value="massas" {% if receita.categoria == 'massas' %}selected{% endif %}>Massas</option>
+                        <option value="carne" {% if receita.categoria == 'carne' %}selected{% endif %}>Carnes</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="descricao">Descrição *</label>
+                <textarea id="descricao" name="descricao" rows="2" required>{{ receita.descricao }}</textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="tempo_preparo">Tempo de Preparo *</label>
+                    <input type="text" id="tempo_preparo" name="tempo_preparo" value="{{ receita.tempo_preparo }}" placeholder="ex: 45 min" required>
+                </div>
+                <div class="form-group">
+                    <label for="porcoes">Porções *</label>
+                    <input type="text" id="porcoes" name="porcoes" value="{{ receita.porcoes }}" placeholder="ex: 8 porções" required>
+                </div>
+                <div class="form-group">
+                    <label for="dificuldade">Dificuldade *</label>
+                    <select id="dificuldade" name="dificuldade" required>
+                        <option value="">Selecione</option>
+                        <option value="Fácil" {% if receita.dificuldade == 'Fácil' %}selected{% endif %}>Fácil</option>
+                        <option value="Médio" {% if receita.dificuldade == 'Médio' %}selected{% endif %}>Médio</option>
+                        <option value="Difícil" {% if receita.dificuldade == 'Difícil' %}selected{% endif %}>Difícil</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="imagem">Imagem da Receita</label>
+                <input type="file" id="imagem" name="imagem" accept="image/*">
+                {% if receita.imagem %}
+                <div class="current-image">
+                    <p>Imagem atual:</p>
+                    <img src="{{ url_for('static', filename='uploads/' + receita.imagem) }}" alt="{{ receita.titulo }}" style="max-width: 200px;">
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="ingredientes">Ingredientes (um por linha) *</label>
+                <textarea id="ingredientes" name="ingredientes" rows="5" required>{% for ingrediente in receita.ingredientes %}{{ ingrediente }}{% if not loop.last %}&#10;{% endif %}{% endfor %}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="modo_preparo">Modo de Preparo (um passo por linha) *</label>
+                <textarea id="modo_preparo" name="modo_preparo" rows="5" required>{% for passo in receita.modo_preparo %}{{ passo }}{% if not loop.last %}&#10;{% endif %}{% endfor %}</textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">Atualizar Receita</button>
+                <a href="{{ url_for('visualizar_receita', receita_id=receita_id) }}" class="btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
